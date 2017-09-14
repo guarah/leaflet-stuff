@@ -4,7 +4,8 @@
   <div leaflet style="height: 100vh;"
     [leafletOptions]="options"
     [leafletLayers]="layers"
-    [leafletLayersControl]="layersControl">
+    [leafletLayersControl]="layersControl"
+    (leafletMapReady)="onMapReady($event)">
   </div>
 
 
