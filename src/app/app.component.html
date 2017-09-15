@@ -1,12 +1,13 @@
-<!--The whole content below can be removed with the new code.-->
 <div style="text-align:center">
 
-  <div leaflet style="height: 100vh;"
+  <div leaflet style="height: 90vh;"
     [leafletOptions]="options"
     [leafletLayers]="layers"
     [leafletLayersControl]="layersControl"
     (leafletMapReady)="onMapReady($event)">
   </div>
+
+  <input type="file" id="input" accept=".kmz,.kml" (change)="fileHandler($event)">
 
 
 </div>

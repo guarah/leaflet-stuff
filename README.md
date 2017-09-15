@@ -1,5 +1,12 @@
 # LeafletStuff
 
+KMZ to geoJSON
+KML to geoJSON
+
+## About
+
+This app loads files in kmz or kml to geoJSON, and adds it to a leaflet map.
+
 This project was generated with [Angular CLI](https://github.com/angular/angular-cli) version 1.1.1.
 
 ## Development server

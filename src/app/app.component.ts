@@ -13,7 +13,6 @@ import JSZipUtils from 'jszip-utils/dist/jszip-utils';
 export class AppComponent {
 
   public layers: L.Layer[]
-
   public options = {
     layers: [
       L.tileLayer('http://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 18, attribution: '...' })
@@ -21,9 +20,6 @@ export class AppComponent {
     zoom: 5,
     center: L.latLng([ 46.879966, -121.726909 ])
   };
-
-
-
   public layersControl = {
     baseLayers: {
       'Open Street Map': L.tileLayer('http://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 18, attribution: '...' }),
@@ -34,37 +30,70 @@ export class AppComponent {
       'Big Square': L.polygon([[ 46.8, -121.55 ], [ 46.9, -121.55 ], [ 46.9, -121.7 ], [ 46.8, -121.7 ]])
     }
   }
+  private map: L.Map;
 
   public onMapReady(map: L.Map) {
+    this.map = map;
+  }
 
-  JSZipUtils.getBinaryContent('./assets/z.kmz', function(err, data) {
-    if (err) {
-      alert(err);
-      return;
+  private process(url, type) {
+    if (type === 'kmz') {
+      this.kmzToGeoJSON(url);
+    } else if (type === 'kml') {
+      this.kmlToGeoJSON(url)
     }
-    try {
-      JSZip.loadAsync(data)
-      .then(function(z) {
-        return z.file(/.*\.kml/)[0].async('string')
-      })
-      .then(function success(text) {
-        const p = omnivore.kml.parse(text).addTo(map);
-        map.fitBounds(p.getBounds());
-        p.eachLayer(function(layer){
-          layer.bindTooltip('<div style="width:300px">' + layer.feature.properties.description + '</div>');
+  }
+
+  private showLayersOnMap(layers) {
+    layers.addTo(this.map);
+    if (layers.getBounds().isValid()) {
+      this.map.fitBounds(layers.getBounds());
+    }
+    layers.eachLayer((layer) => {
+      layer.bindTooltip('<div style="width:300px">' + layer.feature.properties.description + '</div>');
+    });
+  }
+
+  public fileHandler(event) {
+    const file = event.target.files[0];
+    const fileUrl = window.URL.createObjectURL(file);
+    this.process(fileUrl, file.name.indexOf('kmz') > -1 ? 'kmz' : 'kml');
+  }
+
+  private kmzToGeoJSON(url) {
+    JSZipUtils.getBinaryContent(url, (err, data) => {
+      if (err) {
+        alert(err);
+        return;
+      }
+      try {
+        JSZip.loadAsync(data)
+        .then((z) => {
+          return z.file(/.*\.kml/)[0].async('string');
+        })
+        .then((text) => {
+          const layers = omnivore.kml.parse(text);
+          this.showLayersOnMap(layers);
+          window.URL.revokeObjectURL(url);
+        },
+        function error(e) {
+          alert(e);
         });
-      },
-      function error(e) {
+      } catch (e) {
         alert(e);
-      });
-    } catch (e) {
-      alert(e);
-    }
-  });
+      }
+    });
+  }
 
-
-    // const a = omnivore.kml('./assets/s.kml').addTo(map);
-    // console.log(`a`, a);
-    // map.fitBounds(a.getBounds());
+  private kmlToGeoJSON(url) {
+    const layer = omnivore.kml(url)
+    .on('ready', (data) => {
+        this.showLayersOnMap(data.target);
+        window.URL.revokeObjectURL(url);
+    })
+    .on('error', (err) => {
+        console.log(err);
+    });
+    // .addTo(map);
   }
 }
