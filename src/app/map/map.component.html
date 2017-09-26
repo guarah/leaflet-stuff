@@ -1,0 +1,22 @@
+<div style="text-align:center">
+
+    <dx-autocomplete class="search"
+      placeholder="Search an address"
+      [showClearButton]="true"
+      [dataSource]="addressSuggestions"
+      [(value)]="address"
+      (onValueChanged)="selectAddress($event)">
+    </dx-autocomplete>
+
+    <div leaflet style="height: 90vh;"
+      [leafletOptions]="options"
+      [leafletLayers]="layers"
+      [leafletLayersControl]="layersControl"
+      (leafletMapReady)="onMapReady($event)">
+    </div>
+
+    <input type="file" id="input" accept=".kmz,.kml" (change)="fileHandler($event)">
+    <button (click)="a()">great</button>
+
+
+  </div>

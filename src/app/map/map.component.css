@@ -1,0 +1,9 @@
+:host .search {
+  position: absolute;
+  top: 0;
+  z-index: 1001;
+  left: 0;
+  right: 0;
+  width: 50%;
+  margin: auto;
+}
