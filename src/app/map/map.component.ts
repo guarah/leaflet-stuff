@@ -145,14 +145,34 @@ export class MapComponent implements OnInit {
       const areasGeosJSON = this.areasLayers.toGeoJSON() as any,
       areasSizes = this.getAreasSizes(areasGeosJSON);
 
-      const biggestArea = Math.max(areasSizes.map(x => x.areaSize));
+      const biggestArea = Math.max(...areasSizes.map(x => x.areaSize));
 
       const biggestAreaFeature = areasGeosJSON.features
       .find(feature => {
         return areasSizes
         .find(a => a.areaSize === biggestArea).featureId === feature.id;
       });
+
       this.map.fitBounds(L.geoJSON(biggestAreaFeature).getBounds());
+      console.log('biggest area:', biggestArea);
+    }
+  }
+
+  private smallerAreaSize() {
+    if (this.areasLayers) {
+      const areasGeosJSON = this.areasLayers.toGeoJSON() as any,
+      areasSizes = this.getAreasSizes(areasGeosJSON);
+
+      const smallestArea = Math.min(...areasSizes.map(x => x.areaSize));
+
+      const smallestAreaFeature = areasGeosJSON.features
+      .find(feature => {
+        return areasSizes
+        .find(a => a.areaSize === smallestArea).featureId === feature.id;
+      });
+
+      this.map.fitBounds(L.geoJSON(smallestAreaFeature).getBounds());
+      console.log('smallest area:', smallestArea);
     }
   }
 }
