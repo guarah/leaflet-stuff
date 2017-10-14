@@ -1,3 +1,4 @@
+import { FileLoaderService } from './file-loader.service';
 import { NgModule } from '@angular/core';
 import { CommonModule } from '@angular/common';
 
@@ -20,7 +21,8 @@ import { MapComponent } from './map.component';
     MapComponent
   ],
   providers: [
-    MapService
+    MapService,
+    FileLoaderService
   ]
 })
 export class MapModule { }
