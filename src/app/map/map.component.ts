@@ -1,11 +1,10 @@
+import { FileLoaderService } from './file-loader.service';
 import { MapService } from './map.service';
 import { Component, OnInit } from '@angular/core';
 import * as L from 'leaflet';
-import * as omnivore from '@mapbox/leaflet-omnivore';
-import extract from 'extract-zip';
-import JSZip from 'jszip/dist/jszip';
-import JSZipUtils from 'jszip-utils/dist/jszip-utils';
-import * as turf from '@turf/turf';
+// import * as C from 'leaflet.markercluster';
+import 'leaflet';
+import 'leaflet.markercluster';
 
 @Component({
   selector: 'app-map',
@@ -41,7 +40,10 @@ export class MapComponent implements OnInit {
 
   private areasLayers: L.LayerGroup;
 
-  constructor(private mapService: MapService) { }
+  constructor(
+    public mapService: MapService,
+    private fileLoaderService: FileLoaderService
+  ) { }
 
   ngOnInit() {
     this.mapService.mapData$.subscribe(data => {
@@ -50,13 +52,47 @@ export class MapComponent implements OnInit {
         iconUrl: 'assets/map-marker.png',
         iconSize: [40, 40]
       });
+
+      const markers = L['markerClusterGroup']({
+        iconCreateFunction: function(cluster) {
+          const clusterDiv = `
+          <div
+            style="background-color: #f78c71;
+                   border-radius: 50px;
+                   height: 30px;
+                   width: 30px;
+                   text-align: center;
+                   line-height: 30px;
+                   color: white;
+                   font-weight: bold;
+                   border: solid 1px #e04118;">
+            ${cluster.getChildCount()}
+          </div>`;
+          return L.divIcon({ html: clusterDiv });
+        }
+      });
+
       const geoJsonLayer = L.geoJSON(data, {
         onEachFeature: function(feature, layer){
           (layer as any).setIcon(defaultIcon);
+          markers.addLayer(layer);
         }
-      }).addTo(this.map);
+      }); // .addTo(this.map);
 
+      this.map.addLayer(markers);
     });
+
+    this.mapService.biggestArea$.subscribe(data => {
+      this.map.fitBounds(L.geoJSON(data).getBounds());
+      console.log('biggest area:', data);
+    });
+
+    this.mapService.smallestArea$.subscribe(data => {
+      this.map.fitBounds(L.geoJSON(data).getBounds());
+      console.log('smallest area:', data);
+    });
+
+    this.fileLoaderService.loadedLayes$.subscribe(data => this.showLayersOnMap(data));
   }
 
   public onMapReady(map: L.Map) {
@@ -64,15 +100,14 @@ export class MapComponent implements OnInit {
     this.mapService.loadData();
   }
 
-  private process(url, type) {
-    if (type === 'kmz') {
-      this.kmzToGeoJSON(url);
-    } else if (type === 'kml') {
-      this.kmlToGeoJSON(url)
-    }
+  public fileHandler(event) {
+    const file = event.target.files[0];
+    const fileUrl = window.URL.createObjectURL(file);
+    this.fileLoaderService.process(fileUrl, file.name.indexOf('kmz') > -1 ? 'kmz' : 'kml');
   }
 
   private showLayersOnMap(layers) {
+    this.areasLayers = layers;
     layers.addTo(this.map);
     if (layers.getBounds().isValid()) {
       this.map.fitBounds(layers.getBounds());
@@ -82,97 +117,5 @@ export class MapComponent implements OnInit {
     });
   }
 
-  public fileHandler(event) {
-    const file = event.target.files[0];
-    const fileUrl = window.URL.createObjectURL(file);
-    this.process(fileUrl, file.name.indexOf('kmz') > -1 ? 'kmz' : 'kml');
-  }
-
-  private kmzToGeoJSON(url) {
-    JSZipUtils.getBinaryContent(url, (err, data) => {
-      if (err) {
-        alert(err);
-        return;
-      }
-      try {
-        JSZip.loadAsync(data)
-        .then((z) => {
-          return z.file(/.*\.kml/)[0].async('string');
-        })
-        .then((text) => {
-          const layers = omnivore.kml.parse(text);
-          this.areasLayers = layers;
-          this.showLayersOnMap(layers);
-          window.URL.revokeObjectURL(url);
-        },
-        function error(e) {
-          alert(e);
-        });
-      } catch (e) {
-        alert(e);
-      }
-    });
-  }
-
-  private kmlToGeoJSON(url) {
-    const layer = omnivore.kml(url)
-    .on('ready', (data) => {
-        this.showLayersOnMap(data.target);
-        window.URL.revokeObjectURL(url);
-    })
-    .on('error', (err) => {
-        console.log(err);
-    });
-    // .addTo(map);
-  }
-
-  public selectAddress(event) {
-    console.log(event);
-  }
-
-  private getAreasSizes(geoJson) {
-    return geoJson.features.reduce((acc, item) => {
-      acc.push({
-        featureId: item.id,
-        areaSize: turf.area(item)
-      });
-      return acc;
-    }, []);
-  }
-
-  private biggerAreaSize() {
-    if (this.areasLayers) {
-      const areasGeosJSON = this.areasLayers.toGeoJSON() as any,
-      areasSizes = this.getAreasSizes(areasGeosJSON);
-
-      const biggestArea = Math.max(...areasSizes.map(x => x.areaSize));
-
-      const biggestAreaFeature = areasGeosJSON.features
-      .find(feature => {
-        return areasSizes
-        .find(a => a.areaSize === biggestArea).featureId === feature.id;
-      });
-
-      this.map.fitBounds(L.geoJSON(biggestAreaFeature).getBounds());
-      console.log('biggest area:', biggestArea);
-    }
-  }
-
-  private smallerAreaSize() {
-    if (this.areasLayers) {
-      const areasGeosJSON = this.areasLayers.toGeoJSON() as any,
-      areasSizes = this.getAreasSizes(areasGeosJSON);
-
-      const smallestArea = Math.min(...areasSizes.map(x => x.areaSize));
-
-      const smallestAreaFeature = areasGeosJSON.features
-      .find(feature => {
-        return areasSizes
-        .find(a => a.areaSize === smallestArea).featureId === feature.id;
-      });
-
-      this.map.fitBounds(L.geoJSON(smallestAreaFeature).getBounds());
-      console.log('smallest area:', smallestArea);
-    }
-  }
+  public selectAddress() {}
 }

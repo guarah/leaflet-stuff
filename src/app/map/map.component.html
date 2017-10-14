@@ -16,8 +16,8 @@
     </div>
 
     <input type="file" id="input" accept=".kmz,.kml" (change)="fileHandler($event)">
-    <button (click)="biggerAreaSize()">bigger area</button>
-    <button (click)="smallerAreaSize()">smaller area</button>
+    <button (click)="mapService.biggerAreaSize(areasLayers)">bigger area</button>
+    <button (click)="mapService.smallerAreaSize(areasLayers)">smaller area</button>
 
 
   </div>
