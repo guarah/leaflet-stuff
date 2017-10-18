@@ -5,6 +5,7 @@ import * as L from 'leaflet';
 // import * as C from 'leaflet.markercluster';
 import 'leaflet';
 import 'leaflet.markercluster';
+import 'leaflet-routing-machine';
 
 @Component({
   selector: 'app-map',
@@ -39,6 +40,7 @@ export class MapComponent implements OnInit {
   private map: L.Map;
 
   private areasLayers: L.LayerGroup;
+  private routeControl;
 
   constructor(
     public mapService: MapService,
@@ -98,6 +100,50 @@ export class MapComponent implements OnInit {
   public onMapReady(map: L.Map) {
     this.map = map;
     this.mapService.loadData();
+
+    // this.routeControl = L['Routing'].control({
+    //   waypoints: [null],
+    //   routeWhileDragging: true,
+    //   show: false,
+    //   // geocoder: L.Control['Geocoder'].nominatim(),
+    //   autoRoute: true
+    // })
+    this.routeControl = L['Routing'].control({
+      plan: L['Routing'].plan(null, {
+        createMarker: function(i, wp) {
+          return L.marker(wp.latLng, {
+            draggable: true,
+            // icon: L.icon.glyph({ glyph: String.fromCharCode(65 + i) })
+          });
+        },
+        // geocoder: L.Control.Geocoder.nominatim(),
+        routeWhileDragging: true
+      }),
+      routeWhileDragging: true,
+      showAlternatives: true,
+      altLineOptions: {
+        styles: [
+          {color: 'black', opacity: 0.15, weight: 9},
+          {color: 'white', opacity: 0.8, weight: 6},
+          {color: 'blue', opacity: 0.5, weight: 2}
+        ]
+      }
+    })
+    .on('routeselected', function(e) {
+      debugger;
+      const route = e.route;
+  }).addTo(this.map);
+  }
+
+  public route() {
+
+    const waypts = [
+      L.latLng(-27.1206954, -48.6189931),
+      L.latLng(-27.1249368, -48.6231666),
+      L.latLng(-27.1222338, -48.620874)
+    ];
+
+    this.routeControl.setWaypoints(waypts)
   }
 
   public fileHandler(event) {
